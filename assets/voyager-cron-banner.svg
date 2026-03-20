@@ -1,0 +1,29 @@
+<svg width="1200" height="300" viewBox="0 0 1200 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="300" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0B1220"/>
+      <stop offset="1" stop-color="#0F172A"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="120" y1="60" x2="520" y2="260" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F59E0B"/>
+      <stop offset="1" stop-color="#A855F7"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="300" rx="24" fill="url(#bg)"/>
+
+  <!-- clock-ish cron glyph -->
+  <circle cx="168" cy="150" r="64" fill="#0B1220" stroke="#1F2937" stroke-width="4"/>
+  <path d="M168 150V118" stroke="url(#accent)" stroke-width="10" stroke-linecap="round"/>
+  <path d="M168 150l28 18" stroke="url(#accent)" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="168" cy="150" r="8" fill="#F59E0B"/>
+
+  <text x="300" y="140" fill="#E5E7EB" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto" font-size="54" font-weight="800">Voyager Cron</text>
+  <text x="300" y="190" fill="#9CA3AF" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto" font-size="24">Fetch from X API and push tweets to Voyager API</text>
+  <text x="300" y="236" fill="#6B7280" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas" font-size="18">Railway Cron · X API · API-only persistence</text>
+
+  <circle cx="1120" cy="70" r="2" fill="#93C5FD" opacity="0.7"/>
+  <circle cx="1080" cy="110" r="1.5" fill="#FDE68A" opacity="0.6"/>
+  <circle cx="1140" cy="150" r="1.5" fill="#C4B5FD" opacity="0.6"/>
+  <circle cx="1050" cy="190" r="2" fill="#93C5FD" opacity="0.5"/>
+</svg>
