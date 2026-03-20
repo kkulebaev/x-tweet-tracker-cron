@@ -1,7 +1,16 @@
 import 'dotenv/config';
 import { mustEnv } from './env.js';
+import { getUserByUsername, getUserTweets, tweetUrl } from './x-api.js';
 
-async function main() {
+type AccountDTO = {
+  id: string;
+  xUsername: string;
+  xUserId: string | null;
+  sinceId: string | null;
+  enabled: boolean;
+};
+
+function normalizeBaseUrl() {
   let base = mustEnv('API_BASE_URL').trim().replace(/\/$/, '');
 
   const hasScheme = /^https?:\/\//i.test(base);
@@ -20,21 +29,94 @@ async function main() {
   } catch {
     // ignore
   }
-  const token = mustEnv('API_TOKEN');
 
-  const res = await fetch(base + '/admin/run', {
-    method: 'POST',
+  return base;
+}
+
+async function apiFetch(path: string, init?: RequestInit) {
+  const base = normalizeBaseUrl();
+  const token = mustEnv('API_TOKEN');
+  const res = await fetch(base + path, {
+    ...init,
     headers: {
+      ...(init?.headers ?? {}),
       authorization: `Bearer ${token}`,
+      'content-type': 'application/json',
     },
   });
 
   const text = await res.text();
-  if (!res.ok) {
-    throw new Error(`API call failed: ${res.status} ${res.statusText} :: ${text}`);
+  let json: any;
+  try {
+    json = text ? JSON.parse(text) : {};
+  } catch {
+    json = { raw: text };
   }
 
-  console.log(text);
+  if (!res.ok) {
+    const msg = json?.error || json?.message || `${res.status} ${res.statusText}`;
+    throw new Error(`API error: ${msg}`);
+  }
+
+  return json;
+}
+
+function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+async function main() {
+  const accountsResp = await apiFetch('/admin/accounts');
+  const accounts: AccountDTO[] = accountsResp.accounts ?? [];
+
+  let totalInserted = 0;
+  const errors: Array<{ xUsername: string; error: string }> = [];
+
+  for (const acc of accounts) {
+    if (!acc.enabled) continue;
+
+    try {
+      // Resolve x_user_id if needed
+      let xUserId = acc.xUserId;
+      if (!xUserId) {
+        const u = await getUserByUsername(acc.xUsername);
+        xUserId = u.id;
+        await apiFetch(`/admin/accounts/${encodeURIComponent(acc.id)}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ x_user_id: xUserId }),
+        });
+      }
+
+      const { tweets, newestId } = await getUserTweets({ userId: xUserId!, sinceId: acc.sinceId, maxResults: 5 });
+
+      const payloadTweets = (tweets ?? []).map((t) => ({
+        id: t.id,
+        text: t.text,
+        created_at: t.created_at,
+        url: tweetUrl(acc.xUsername, t.id),
+        raw: t,
+      }));
+
+      await apiFetch('/admin/tweets/push', {
+        method: 'POST',
+        body: JSON.stringify({
+          accountId: acc.id,
+          newestId: newestId ?? null,
+          tweets: payloadTweets,
+        }),
+      });
+
+      totalInserted += payloadTweets.length;
+
+      await sleep(250);
+    } catch (e) {
+      errors.push({ xUsername: acc.xUsername, error: String((e as any)?.message ?? e) });
+      // Backoff a bit on errors to avoid thundering herd
+      await sleep(1500);
+    }
+  }
+
+  console.log(JSON.stringify({ ok: true, inserted: totalInserted, errors }, null, 2));
 }
 
 main().catch((e) => {
