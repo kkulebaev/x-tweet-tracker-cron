@@ -2,7 +2,9 @@ import 'dotenv/config';
 import { mustEnv } from './env.js';
 
 async function main() {
-  const base = mustEnv('API_BASE_URL').replace(/\/$/, '');
+  let base = mustEnv('API_BASE_URL').trim();
+  if (!/^https?:\/\//i.test(base)) base = `https://${base}`;
+  base = base.replace(/\/$/, '');
   const token = mustEnv('API_TOKEN');
 
   const res = await fetch(base + '/admin/run', {
