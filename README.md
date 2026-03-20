@@ -1,14 +1,30 @@
+<p align="center">
+  <img src="./assets/voyager-cron-banner.svg" alt="Voyager Cron banner" />
+</p>
+
+<p align="center">
+  Cron worker for x-tweet-tracker (fetches from X API, persists via Voyager API)
+</p>
+
+<p align="center">
+  <img alt="runtime" src="https://img.shields.io/badge/runtime-Node.js-339933" />
+  <img alt="deploy" src="https://img.shields.io/badge/deploy-Railway-6B46C1" />
+  <img alt="source" src="https://img.shields.io/badge/source-X%20API-111827" />
+</p>
+
 # x-tweet-tracker-cron
 
-Cron runner for x-tweet-tracker.
+This service runs on a schedule:
+1) loads accounts from the API
+2) fetches recent posts from X API
+3) pushes tweets back to the API (`/admin/tweets/push`) for persistence
 
-This service **does not** connect to Postgres directly — it:
-- loads the account list from the API
-- fetches recent posts from X API
-- pushes new tweets back to the API for persistence
+No direct DB access.
 
 ## Environment variables
-- `API_BASE_URL` — e.g. `https://x-tweet-tracker-production.up.railway.app` (или `x-tweet-tracker.railway.internal` / `x-tweet-tracker.railway.internal:8080`)
+- `API_BASE_URL`
+  - public: `https://x-tweet-tracker-production.up.railway.app`
+  - private (Railway): `x-tweet-tracker.railway.internal` (auto → `http://...:8080`)
 - `API_TOKEN` — same value as API `ADMIN_TOKEN`
 - `X_BEARER_TOKEN` — X API Bearer token
 
