@@ -76,6 +76,8 @@ export async function getUserTweets(args: {
     meta?: { newest_id?: string; result_count?: number };
   }>(`/users/${encodeURIComponent(args.userId)}/tweets`, {
     'tweet.fields': 'created_at',
+    // Keep only author's own tweets: exclude replies (incl. thread replies) and retweets
+    exclude: 'replies,retweets',
     since_id: args.sinceId ?? undefined,
     max_results: String(max),
   });
