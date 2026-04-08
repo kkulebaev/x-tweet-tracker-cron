@@ -17,9 +17,16 @@
 This service runs on a schedule:
 1) loads accounts from the API
 2) fetches recent posts from X API
-3) pushes tweets back to the API (`/admin/tweets/push`) for persistence
+3) expands attached X media for photos
+4) pushes tweets back to the API (`/admin/tweets/push`) for persistence
 
 No direct DB access.
+
+## Current media behavior
+- fetches attached media through X API expansions
+- keeps only `photo` media for now
+- sends `mediaUrls: string[]` per tweet to the API
+- if X returns no photo media for a tweet, sends an empty array
 
 ## Environment variables
 - `API_BASE_URL`
