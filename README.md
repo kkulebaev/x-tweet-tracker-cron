@@ -28,6 +28,11 @@ No direct DB access.
 - sends `mediaUrls: string[]` per tweet to the API
 - if X returns no photo media for a tweet, sends an empty array
 
+## Logging
+- emits structured JSON logs to stdout
+- logs cron start and finish, account-level progress, API calls, X API calls, and per-account failures
+- designed for easy filtering in Railway logs by `event`, `xUsername`, `accountId`, `status`, or `durationMs`
+
 ## Environment variables
 - `API_BASE_URL`
   - public: `https://x-tweet-tracker-production.up.railway.app`
