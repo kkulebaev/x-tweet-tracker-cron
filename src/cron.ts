@@ -1,4 +1,3 @@
-import 'dotenv/config';
 import { mustEnv } from './env.js';
 import { logError, logInfo, serializeError } from './logger.js';
 import { getUserByUsername, getUserTweets, tweetUrl } from './x-api.js';

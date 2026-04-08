@@ -1,19 +1,6 @@
-FROM node:24.14.1-alpine AS deps
-WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
-
-FROM node:24.14.1-alpine AS build
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY package.json package-lock.json tsconfig.json ./
-COPY src ./src
-RUN npm run build && npm prune --omit=dev
-
-FROM node:24.14.1-alpine AS runtime
+FROM oven/bun:1.3.11-alpine
 WORKDIR /app
 ENV NODE_ENV=production
-COPY package.json package-lock.json ./
-COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/dist ./dist
-CMD ["node", "dist/cron.js"]
+COPY package.json ./
+COPY src ./src
+CMD ["bun", "src/cron.ts"]
