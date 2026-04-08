@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <img alt="runtime" src="https://img.shields.io/badge/runtime-Node.js-339933" />
+  <img alt="runtime" src="https://img.shields.io/badge/runtime-Bun-F472B6" />
   <img alt="deploy" src="https://img.shields.io/badge/deploy-Railway-6B46C1" />
   <img alt="source" src="https://img.shields.io/badge/source-X%20API-111827" />
 </p>
@@ -42,19 +42,19 @@ No direct DB access.
 
 ## Local run
 ```bash
-npm ci
-npm run dev
+bun install
+bun run dev
 ```
 
 ## Railway Cron
 Build:
 ```bash
-npm ci && npm run build
+echo "No build step required"
 ```
 
 Command:
 ```bash
-npm start
+bun run start
 ```
 
 Schedule:
@@ -74,3 +74,8 @@ docker run --rm \
   -e X_BEARER_TOKEN \
   x-tweet-tracker-cron
 ```
+
+## Notes
+- the runtime entrypoint uses Bun directly, no `dist/` output is required for production runs
+- Bun-native TypeScript support is configured via `@types/bun` and `compilerOptions.types = ["bun"]`
+- `bun run build` and `bun run typecheck` use `bun x tsc`
