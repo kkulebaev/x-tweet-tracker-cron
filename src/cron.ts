@@ -46,7 +46,7 @@ async function apiFetch(path: string, init?: RequestInit) {
   });
 
   const text = await res.text();
-  let json: any;
+  let json: unknown;
   try {
     json = text ? JSON.parse(text) : {};
   } catch {
@@ -54,7 +54,13 @@ async function apiFetch(path: string, init?: RequestInit) {
   }
 
   if (!res.ok) {
-    const msg = json?.error || json?.message || `${res.status} ${res.statusText}`;
+    const body = typeof json === 'object' && json ? json : {};
+    const msg =
+      typeof body === 'object' && body && 'error' in body && typeof body.error === 'string'
+        ? body.error
+        : typeof body === 'object' && body && 'message' in body && typeof body.message === 'string'
+          ? body.message
+          : `${res.status} ${res.statusText}`;
     throw new Error(`API error: ${msg}`);
   }
 
@@ -66,7 +72,7 @@ function sleep(ms: number) {
 }
 
 async function main() {
-  const accountsResp = await apiFetch('/admin/accounts');
+  const accountsResp = (await apiFetch('/admin/accounts')) as { accounts?: AccountDTO[] };
   const accounts: AccountDTO[] = accountsResp.accounts ?? [];
 
   let totalInserted = 0;
@@ -87,14 +93,15 @@ async function main() {
         });
       }
 
-      const { tweets, newestId } = await getUserTweets({ userId: xUserId!, sinceId: acc.sinceId, maxResults: 5 });
+      const { tweets, newestId } = await getUserTweets({ userId: xUserId, sinceId: acc.sinceId, maxResults: 5 });
 
-      const payloadTweets = (tweets ?? []).map((t) => ({
+      const payloadTweets = tweets.map((t) => ({
         id: t.id,
         text: t.text,
         created_at: t.created_at,
         url: tweetUrl(acc.xUsername, t.id),
-        raw: t,
+        mediaUrls: t.mediaUrls,
+        raw: t.raw,
       }));
 
       await apiFetch('/admin/tweets/push', {
@@ -110,7 +117,8 @@ async function main() {
 
       await sleep(250);
     } catch (e) {
-      errors.push({ xUsername: acc.xUsername, error: String((e as any)?.message ?? e) });
+      const message = e instanceof Error ? e.message : String(e);
+      errors.push({ xUsername: acc.xUsername, error: message });
       // Backoff a bit on errors to avoid thundering herd
       await sleep(1500);
     }
