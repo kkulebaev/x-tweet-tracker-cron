@@ -59,3 +59,18 @@ npm start
 
 Schedule:
 - `0 * * * *` (hourly)
+
+## Docker
+Build the image:
+```bash
+docker build -t x-tweet-tracker-cron .
+```
+
+Run the container:
+```bash
+docker run --rm \
+  -e API_BASE_URL \
+  -e API_TOKEN \
+  -e X_BEARER_TOKEN \
+  x-tweet-tracker-cron
+```
