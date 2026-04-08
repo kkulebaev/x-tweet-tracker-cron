@@ -1,4 +1,5 @@
 import { mustEnv } from './env.js';
+import { logInfo } from './logger.js';
 
 export type XUser = {
   id: string;
@@ -57,11 +58,19 @@ async function xFetch<T>(path: string, params?: Record<string, string | undefine
     }
   }
 
+  const startedAt = Date.now();
   const res = await fetch(url, {
     headers: {
       ...authHeaders(),
       'user-agent': 'x-tweet-tracker-cron/0.1',
     },
+  });
+
+  const durationMs = Date.now() - startedAt;
+  logInfo('x_api_request_completed', {
+    path,
+    status: res.status,
+    durationMs,
   });
 
   const text = await res.text();

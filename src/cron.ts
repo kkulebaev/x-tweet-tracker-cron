@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { mustEnv } from './env.js';
+import { logError, logInfo, serializeError } from './logger.js';
 import { getUserByUsername, getUserTweets, tweetUrl } from './x-api.js';
 
 type AccountDTO = {
@@ -8,6 +9,10 @@ type AccountDTO = {
   xUserId: string | null;
   sinceId: string | null;
   enabled: boolean;
+};
+
+type AccountsResponse = {
+  accounts?: AccountDTO[];
 };
 
 function normalizeBaseUrl() {
@@ -36,6 +41,9 @@ function normalizeBaseUrl() {
 async function apiFetch(path: string, init?: RequestInit) {
   const base = normalizeBaseUrl();
   const token = mustEnv('API_TOKEN');
+  const startedAt = Date.now();
+  const method = init?.method ?? 'GET';
+
   const res = await fetch(base + path, {
     ...init,
     headers: {
@@ -43,6 +51,14 @@ async function apiFetch(path: string, init?: RequestInit) {
       authorization: `Bearer ${token}`,
       'content-type': 'application/json',
     },
+  });
+
+  const durationMs = Date.now() - startedAt;
+  logInfo('api_request_completed', {
+    method,
+    path,
+    status: res.status,
+    durationMs,
   });
 
   const text = await res.text();
@@ -72,24 +88,61 @@ function sleep(ms: number) {
 }
 
 async function main() {
-  const accountsResp = (await apiFetch('/admin/accounts')) as { accounts?: AccountDTO[] };
+  const baseUrl = normalizeBaseUrl();
+  logInfo('cron_started', {
+    apiBaseUrl: baseUrl,
+  });
+
+  const accountsResp = (await apiFetch('/admin/accounts')) as AccountsResponse;
   const accounts: AccountDTO[] = accountsResp.accounts ?? [];
+  const enabledAccounts = accounts.filter((account) => account.enabled);
+
+  logInfo('accounts_loaded', {
+    total: accounts.length,
+    enabled: enabledAccounts.length,
+    disabled: accounts.length - enabledAccounts.length,
+  });
 
   let totalInserted = 0;
+  let processedAccounts = 0;
   const errors: Array<{ xUsername: string; error: string }> = [];
 
   for (const acc of accounts) {
-    if (!acc.enabled) continue;
+    if (!acc.enabled) {
+      logInfo('account_skipped_disabled', {
+        accountId: acc.id,
+        xUsername: acc.xUsername,
+      });
+      continue;
+    }
+
+    logInfo('account_processing_started', {
+      accountId: acc.id,
+      xUsername: acc.xUsername,
+      hasXUserId: Boolean(acc.xUserId),
+      sinceId: acc.sinceId,
+    });
 
     try {
-      // Resolve x_user_id if needed
       let xUserId = acc.xUserId;
       if (!xUserId) {
+        logInfo('account_resolving_x_user_id', {
+          accountId: acc.id,
+          xUsername: acc.xUsername,
+        });
+
         const u = await getUserByUsername(acc.xUsername);
         xUserId = u.id;
+
         await apiFetch(`/admin/accounts/${encodeURIComponent(acc.id)}`, {
           method: 'PATCH',
           body: JSON.stringify({ x_user_id: xUserId }),
+        });
+
+        logInfo('account_x_user_id_resolved', {
+          accountId: acc.id,
+          xUsername: acc.xUsername,
+          xUserId,
         });
       }
 
@@ -114,20 +167,46 @@ async function main() {
       });
 
       totalInserted += payloadTweets.length;
+      processedAccounts += 1;
+
+      logInfo('account_processing_succeeded', {
+        accountId: acc.id,
+        xUsername: acc.xUsername,
+        tweetsFetched: tweets.length,
+        tweetsInserted: payloadTweets.length,
+        tweetsWithMedia: payloadTweets.filter((tweet) => tweet.mediaUrls.length > 0).length,
+        newestId: newestId ?? null,
+      });
 
       await sleep(250);
-    } catch (e) {
-      const message = e instanceof Error ? e.message : String(e);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
       errors.push({ xUsername: acc.xUsername, error: message });
+
+      logError('account_processing_failed', {
+        accountId: acc.id,
+        xUsername: acc.xUsername,
+        error: serializeError(error),
+      });
+
       // Backoff a bit on errors to avoid thundering herd
       await sleep(1500);
     }
   }
 
-  console.log(JSON.stringify({ ok: true, inserted: totalInserted, errors }, null, 2));
+  logInfo('cron_finished', {
+    ok: true,
+    accountsTotal: accounts.length,
+    accountsProcessed: processedAccounts,
+    inserted: totalInserted,
+    errorsCount: errors.length,
+    errors,
+  });
 }
 
-main().catch((e) => {
-  console.error('ERROR:', e);
+main().catch((error) => {
+  logError('cron_failed', {
+    error: serializeError(error),
+  });
   process.exitCode = 1;
 });
