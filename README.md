@@ -8,6 +8,7 @@
 
 <p align="center">
   <img alt="runtime" src="https://img.shields.io/badge/runtime-Bun-F472B6" />
+  <img alt="container" src="https://img.shields.io/badge/container-Dockerfile-2496ED?logo=docker&logoColor=white" />
   <img alt="deploy" src="https://img.shields.io/badge/deploy-Railway-6B46C1" />
   <img alt="source" src="https://img.shields.io/badge/source-X%20API-111827" />
 </p>
@@ -21,17 +22,6 @@ This service runs on a schedule:
 4) pushes tweets back to the API (`/admin/tweets/push`) for persistence
 
 No direct DB access.
-
-## Current media behavior
-- fetches attached media through X API expansions
-- keeps only `photo` media for now
-- sends `mediaUrls: string[]` per tweet to the API
-- if X returns no photo media for a tweet, sends an empty array
-
-## Logging
-- emits structured JSON logs to stdout
-- logs cron start and finish, account-level progress, API calls, X API calls, and per-account failures
-- designed for easy filtering in Railway logs by `event`, `xUsername`, `accountId`, `status`, or `durationMs`
 
 ## Environment variables
 - `API_BASE_URL`
@@ -75,7 +65,3 @@ docker run --rm \
   x-tweet-tracker-cron
 ```
 
-## Notes
-- the runtime entrypoint uses Bun directly, no `dist/` output is required for production runs
-- Bun-native TypeScript support is configured via `@types/bun` and `compilerOptions.types = ["bun"]`
-- `bun run build` and `bun run typecheck` use `bun x tsc`
